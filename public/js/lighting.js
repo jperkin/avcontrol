@@ -21,8 +21,8 @@ $(document).ready(function() {
     //$("#brightness-slider").slider('setvalue', parseInt(data));
   });
   socket.on('emitPreset', function(data) {
-    $('.btn-preset').removeClass('btn-info').addClass('btn-primary');
-    $('#preset-button-' + data).addClass('btn-info').button('refresh');
+    $('.btn-preset').removeClass('btn-preset-active').addClass('btn-preset-inactive');
+    $('#preset-button-' + data).removeClass('btn-preset-inactive').addClass('btn-preset-active').button('refresh');
   });
 
   /*
@@ -116,7 +116,7 @@ $(document).ready(function() {
         )
         .append($('<td>')
           .append($('<button>', {"class": "btn btn-info btn-block"})
-            .text('Details')
+            .text('Edit')
           )
         )
         .append($('<td>')
@@ -433,7 +433,7 @@ $(document).ready(function() {
     /*
      * Reset all buttons then make active primary
      */
-    $('.btn-preset').removeClass('btn-info').addClass('btn-primary');
-    $(this).addClass('btn-info').button('refresh');
+    $('.btn-preset').removeClass('btn-preset-active').addClass('btn-preset-inactive');
+    $(this).removeClass('btn-preset-inactive').addClass('btn-preset-active').button('refresh');
   });
 });
