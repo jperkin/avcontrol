@@ -92,7 +92,6 @@ $(document).ready(function() {
    * an updated version
    */
   socket.on('emitZones', function(data) {
-    console.log(data[0]);
     zones = data;
     /*
      * Build up the table rows first.
@@ -361,7 +360,6 @@ $(document).ready(function() {
     var pos = $('#colour-wheel').offset();
     var size = $('#colour-wheel').height();
     var startcolour = zones[zoneid].colour;
-    console.log(zoneid + ' -> ' + startcolour);
     $('#modal-change-colour').data('start-colour', startcolour);
     $('#modal-change-colour').data('zone-id', zoneid);
     wheel = Raphael.colorwheel(pos.left, pos.top, 350, startcolour, 'colour-wheel');
@@ -386,8 +384,6 @@ $(document).ready(function() {
       'colour': $('#modal-change-colour').data('start-colour'),
     };
     zones[revert.zoneid].colour = revert.colour;
-    console.log('revert');
-    console.log(revert);
     socket.emit('setZoneColour', revert);
   });
   $(document).on('hide', '#modal-change-colour', function() {
