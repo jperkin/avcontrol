@@ -415,7 +415,7 @@ app.post('/api/lighting/zones', function (req, res) {
   var zone = {
     id: id,
     name: req.body.name || 'Unnamed',
-    description: req.body.description || 'Description',
+    description: req.body.description || '',
     colour: req.body.colour || '000000',
     lights: req.body.lights || [],
   };
