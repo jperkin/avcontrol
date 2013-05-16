@@ -1,0 +1,42 @@
+extends layout
+
+block content
+  div.container
+    div.row
+      div.span10
+        p.ui-state-default.ui-corner-all.ui-helper-clearfix(style='padding:8px; text-align: center;') Light Configuration
+      div.span2
+        a.btn.btn-success(href="#modal-add-light", data-toggle="modal") Add Light
+    div.row
+      div#list-lights
+    div.row
+      div.span11
+        div.hide.modal#modal-add-light
+          form#form-add-light
+            div.modal-header
+              button.close(data-dismiss="modal") x
+              h3 Add New Light
+            div.modal-body
+              p For a single light enter its DMX address.
+              p For a multi-light set, enter the base DMX address.
+              input(type="text", id="address", name="address", placeholder="Base Light Address")
+              input(type="text", id="description", name="description", placeholder="Description (Optional)")
+              select(id="type", name="type")
+                option(value="rgb") RGB LED Set
+                option(value="white") Single LED
+                option(value="rgbf") RGB LED Set + Fade
+            div.modal-footer
+              button.btn.btn-close(data-dismiss="modal") Cancel
+              button.btn.btn-primary(type="submit") Create
+    div.row
+        div.hide.modal#modal-delete-light
+          form#form-delete-light
+            div.modal-header
+              button.close(data-dismiss="modal") x
+              h3 Delete Light
+            div.modal-body
+              input(type="hidden", id="delete-light-id", name="delete-light-id", value="")
+              p Are you sure?
+            div.modal-footer
+              button.btn.btn-close(data-dismiss="modal") Cancel
+              button.btn.btn-primary(type="submit") Delete

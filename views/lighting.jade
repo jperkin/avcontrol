@@ -1,0 +1,34 @@
+extends layout
+
+block addstyle
+  style(type='text/css')
+    body {
+      background: #000;
+    }
+
+block content
+  div.container
+    div.row
+      div.span3
+        p.ui-state-default.ui-corner-all.ui-helper-clearfix(style='padding:4px; text-align: center;') Master Brightness
+      div.span9
+        p.ui-state-default.ui-corner-all.ui-helper-clearfix(style='padding:4px; text-align: center;') Presets
+    div.row
+      div.span3
+        button.btn.btn-block.btn-large.btn-onoff.btn-success#brightness-on(type='submit') On Full
+        div#brightness-slider
+        button.btn.btn-block.btn-large.btn-onoff.btn-danger#brightness-off(type='submit') Off
+      div.span9
+        - var presets = [];
+        - presets.push({0: 'One', 1: '', 2: 'Three'})
+        - presets.push({3: 'Four', 4: 'Five', 5: 'Six'})
+        - presets.push({6: 'Seven', 7: 'Eight', 8: 'Off'})
+        div.btn-group(data-toggle="buttons-radio")
+          each row in presets
+            div.row
+              each name, num in row
+                div.span3
+                  button.btn.btn-block.btn-large.btn-preset.btn-primary(type='submit', id='preset-button-' + num, data-id=num)
+  //
+    div.row
+      button.btn.btn-block.btn-large#server-status Server Status

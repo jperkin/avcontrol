@@ -1,0 +1,17 @@
+extends layout
+
+block addstyle
+  style(type='text/css')
+    body {
+      background: #000;
+    }
+
+block content
+  div.container
+    div.row
+      div.span4
+        a.btn.btn-mainlink.btn-block.btn-large.btn-primary(href="/lighting") Lighting
+      div.span4
+        a.btn.btn-mainlink.btn-block.btn-large.btn-info(href="/sound") Sound
+      div.span4
+        a.btn.btn-mainlink.btn-block.btn-large.btn-success(href="/music") Music

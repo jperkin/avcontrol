@@ -1,0 +1,39 @@
+extends layout
+
+block content
+  div.container
+    div.row
+      div.span12
+        p.ui-state-default.ui-corner-all.ui-helper-clearfix(style='padding:8px; text-align: center;') Preset Configuration
+    div.row
+      div.span12
+        div#list-presets
+    div.row
+      div.span1.skip11
+        div.hide.modal#modal-save-preset
+          form#form-save-preset
+            div.modal-header
+              button.close(data-dismiss="modal") x
+              h3 Save Preset
+            div.modal-body
+              p Do you wish to save the current configuration to this preset?
+              p This will overwrite any existing values.
+              input(type="hidden", id="save-preset-id", name="save-preset-id", value="")
+            div.modal-footer
+              button.btn.btn-close(data-dismiss="modal") Cancel
+              button.btn.btn-primary(type="submit") Save
+    div.row
+      div.span1.skip11
+        div.hide.modal#modal-edit-preset
+          form#form-edit-preset
+            div.modal-header
+              button.close(data-dismiss="modal") x
+              h3 Edit Preset
+            div.modal-body
+              input(type="text", id="name", name="name", value="")
+              input(type="text", id="description", name="description", value="")
+              input(type="hidden", id="edit-preset-id", name="edit-preset-id", value="")
+              p Warning: Click the Update button, do not hit enter.
+            div.modal-footer
+              button.btn.btn-close(data-dismiss="modal") Cancel
+              button.btn.btn-primary(type="submit") Update

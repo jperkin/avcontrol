@@ -1,0 +1,51 @@
+doctype 5
+html
+  head
+    title= title
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet', href='/css/bootstrap.min.css')
+    link(rel='stylesheet', href='/css/jquery-ui-1.10.0.custom.css')
+    link(rel='stylesheet', href='/css/bootstrap-responsive.min.css')
+    link(rel='stylesheet', href='/css/style.css')
+    block addstyle
+  body
+    div.navbar.navbar-fixed-top
+      div.navbar-inner
+        div.container-fluid
+          button(type='button', class='btn btn-navbar', data-toggle='collapse', data-target='.nav-collapse')
+            span.icon-bar
+            span.icon-bar
+            span.icon-bar
+          a.brand(href='/') Control Central
+          div
+            ul.nav.navbar-text.pull-right
+              if user && user.username
+                li: a.navbar-link(href='/logout') Logout #{user.username}
+              else
+                li: a.navbar-link(href='/login') Admin Login
+          div.nav-collapse.collapse
+            ul.nav.navbar-text
+              each link in navLinks.user
+                if link.key == section
+                  li.active
+                    a(href=link.path)= link.label
+                else
+                  li
+                    a(href=link.path)= link.label
+              if user && user.level >= 2
+                each link in navLinks.admin
+                  if link.key == section
+                    li.active
+                      a(href=link.path)= link.label
+                  else
+                    li
+                      a(href=link.path)= link.label
+    script(src='js/jquery-1.9.1.min.js')
+    script(src='js/jquery-ui-1.10.0.custom.min.js')
+    script(src='js/jquery.ui.touch-punch.min.js')
+    script(src='js/bootstrap.min.js')
+    script(src='/socket.io/socket.io.js')
+    script(src='js/raphael.js')
+    script(src='js/colorwheel.js')
+    script(src='js/lighting.js')
+    block content

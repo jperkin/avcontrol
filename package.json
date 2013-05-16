@@ -1,0 +1,20 @@
+{
+  "name": "avcontrol",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "artnet-node": "*",
+    "async": "*",
+    "connect-flash": "*",
+    "express": "3.2.0",
+    "jade": "*",
+    "less-middleware": "*",
+    "passport": "*",
+    "passport-http": "*",
+    "passport-local": "*",
+    "socket.io": "*"
+  }
+}
