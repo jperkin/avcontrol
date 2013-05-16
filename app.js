@@ -191,7 +191,6 @@ updateLights = function() {
   for (var i = 0; i < 512; i++) {
     tmp[i] = parseInt(lighting["output"][i] * lighting["brightness"] / 100)
   }
-  console.log('Sending: ' + tmp);
   artnet.send(tmp);
 }
 
@@ -221,7 +220,6 @@ io.sockets.on('connection', function (socket) {
     updateLights();
     fs.writeFile(lightingDB, JSON.stringify(lighting));
     socket.broadcast.emit('emitBrightness', lighting["brightness"]);
-    console.log("set brightness to " + lighting["brightness"]);
   })
   socket.on('setPreset', function(data) {
     var preset = parseInt(data);
@@ -232,7 +230,6 @@ io.sockets.on('connection', function (socket) {
     updateLights();
     fs.writeFile(lightingDB, JSON.stringify(lighting));
     socket.broadcast.emit('emitPreset', lighting["preset"]);
-    console.log("set preset to " + lighting["preset"]);
   })
   socket.on('setZoneColour', function(data) {
     var zoneid = data.zoneid;
@@ -246,8 +243,6 @@ io.sockets.on('connection', function (socket) {
     var b = parseInt(colour.slice(5,7), 16);
     lighting["zones"][zoneid]["lights"].forEach(function(light) {
       var offset = parseInt(light - 1);
-      console.log('light:' + light);
-      console.log('offset:' + offset);
       switch (lighting["lights"][offset]["type"]) {
       case 'rf':
         lighting["output"][offset] = r;
@@ -355,13 +350,7 @@ app.put('/api/lighting/light/:id', function (req, res) {
   res.send(204);
 })
 app.del('/api/lighting/light/:id', function (req, res) {
-  console.log('==> del body')
-  console.log(req.body)
-  console.log('==> del params')
-  console.log(req.params)
   var addr = parseInt(req.params.id)
-  console.log(addr)
-  console.log(lighting["lights"][addr]);
   if (lighting["lights"][addr]["type"] === "rf") {
     delete lighting["lights"][addr]
     delete lighting["lights"][addr+1]
@@ -374,7 +363,6 @@ app.del('/api/lighting/light/:id', function (req, res) {
   } else if (lighting["lights"][addr]["type"] === "w") {
     delete lighting["lights"][addr]
   }
-  console.log(lighting["lights"])
   res.send(204);
   io.sockets.emit('emitLights', lighting["lights"])
 })
@@ -394,7 +382,6 @@ app.get('/api/lighting/preset/:id', function (req, res) {
   }
 })
 app.put('/api/lighting/preset/:id', function (req, res) {
-  console.log(req.body);
   var preset = {
     id: req.params.id,
     name: req.body.name,
@@ -423,7 +410,6 @@ app.get('/api/lighting/zones', function (req, res) {
   res.send(lighting["zones"]);
 })
 app.post('/api/lighting/zones', function (req, res) {
-  console.log(req.body);
   var id = lighting["zones"].length + 1;
   var zone = {
     id: id,
