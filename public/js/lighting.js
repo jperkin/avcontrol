@@ -161,7 +161,7 @@ $(document).ready(function() {
         return true;
       }
       lightboxes.push($('<input>', {type: "checkbox", name: "lights[]", value: addr}))
-      lightboxes.push(' ' + addr + ' (' + lightToName[light.type] + ')')
+      lightboxes.push(' ' + light.description)
       lightboxes.push('<br>')
       if (light.type === "w") {
         var ids = addr;
