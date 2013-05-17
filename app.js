@@ -449,6 +449,13 @@ app.put('/api/lighting/zones/:id', function (req, res) {
   res.send(204);
   io.sockets.emit('emitZones', lighting["zones"]);
 })
+app.del('/api/lighting/zones/:id', function (req, res) {
+  var zoneid = parseInt(req.params.id)
+  delete lighting["zones"][zoneid]
+  fs.writeFile(lightingDB, JSON.stringify(lighting));
+  res.send(204);
+  io.sockets.emit('emitZones', lighting["zones"]);
+})
 
 //app.get('/api/zones/:name', zones.view)
 //app.get('/api/zone/:id/view', zones.view)
