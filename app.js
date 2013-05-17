@@ -424,6 +424,30 @@ app.post('/api/lighting/zones', function (req, res) {
   res.send(201, zone);
   io.sockets.emit('emitZones', lighting["zones"]);
 });
+app.put('/api/lighting/zones/:id', function (req, res) {
+  var zone = {
+    id: req.params.id,
+    name: req.body.name,
+    description: req.body.description,
+    colour: req.body.colour,
+    lights: req.body.lights
+  };
+  if (zone.name) {
+    lighting["zones"][zone.id]["name"] = zone.name
+  }
+  if (zone.description) {
+    lighting["zones"][zone.id]["description"] = zone.description
+  }
+  if (zone.colour) {
+    lighting["zones"][zone.id]["colour"] = zone.colour
+  }
+  if (zone.lights) {
+    lighting["zones"][zone.id]["lights"] = zone.lights
+  }
+  fs.writeFile(lightingDB, JSON.stringify(lighting));
+  res.send(204);
+  io.sockets.emit('emitZones', lighting["zones"]);
+})
 
 //app.get('/api/zones/:name', zones.view)
 //app.get('/api/zone/:id/view', zones.view)
