@@ -364,6 +364,7 @@ app.del('/api/lighting/light/:id', function (req, res) {
   } else if (lighting["lights"][addr]["type"] === "w") {
     delete lighting["lights"][addr]
   }
+  fs.writeFile(lightingDB, JSON.stringify(lighting));
   res.send(204);
   io.sockets.emit('emitLights', lighting["lights"])
 })
