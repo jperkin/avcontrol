@@ -98,6 +98,9 @@ $(document).ready(function() {
      */
     var zonerows = [];
     $.each(data, function(index, zone) {
+      if (!zone) {
+        return true;
+      }
       zonerows.push($('<tr>')
         .append($('<td>', {style: "text-align: center"}).text(zone["id"]))
         .append($('<td>').text(zone["name"]))
@@ -261,6 +264,9 @@ $(document).ready(function() {
   $.getJSON('/api/lighting/zones', function(data) {
     var z = [];
     $.each(data, function(index, zone) {
+      if (!zone) {
+        return true;
+      }
       z.push('<li id="' + index + '">' + zone["name"] + '</li>');
     });
     $('<ul/>', {
