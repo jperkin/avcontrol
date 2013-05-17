@@ -450,7 +450,7 @@ app.put('/api/lighting/zones/:id', function (req, res) {
   io.sockets.emit('emitZones', lighting["zones"]);
 })
 app.del('/api/lighting/zones/:id', function (req, res) {
-  var zoneid = parseInt(req.params.id)
+  var zoneid = parseInt(req.params.id - 1)
   delete lighting["zones"][zoneid]
   fs.writeFile(lightingDB, JSON.stringify(lighting));
   res.send(204);
