@@ -395,11 +395,13 @@ $(document).ready(function() {
     var pos = $('#colour-wheel').offset();
     var size = $('#colour-wheel').height();
     var startcolour = lighting.zones[zoneid].colour;
+    $('#colour-wheel').css('background-color', '#' + startcolour);
     $('#modal-change-colour').data('start-colour', startcolour);
     $('#modal-change-colour').data('zone-id', zoneid);
     wheel = Raphael.colorwheel(pos.left, pos.top, 350, startcolour, 'colour-wheel');
     wheel.onchange = function(colour) {
       lighting.zones[zoneid].colour = colour;
+      $('#colour-wheel').css('background-color', '#' + colour);
       $('#zone-bgcol-' + (zoneid + 1)).css("background-color", '#' + colour);
       socket.emit('setZoneColour', {
         'zoneid': zoneid,
