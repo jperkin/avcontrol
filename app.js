@@ -196,9 +196,6 @@ updateLights = function() {
   artnet.send(tmp);
 }
 
-sendLightingZones = function(socket, data) {
-  socket.broadcast.emit('emitZones', data["zones"]);
-}
 /*
  * Socket events
  */
@@ -207,11 +204,11 @@ io.sockets.on('connection', function (socket) {
   /*
    * Send current settings to new connection..
    */
-  socket.emit('emitBrightness', lighting["brightness"])
-  socket.emit('emitPreset', lighting["preset"])
-  socket.emit('emitPresets', lighting["presets"])
-  socket.emit('emitZones', lighting["zones"])
-  socket.emit('emitLights', lighting["lights"])
+  socket.emit('emitBrightness', lighting)
+  socket.emit('emitPreset', lighting)
+  socket.emit('emitPresets', lighting)
+  socket.emit('emitZones', lighting)
+  socket.emit('emitLights', lighting)
 
   /*
    * ..then update on events
@@ -221,7 +218,7 @@ io.sockets.on('connection', function (socket) {
     lighting["brightness"] = brightness;
     updateLights();
     fs.writeFile(lightingDB, JSON.stringify(lighting));
-    socket.broadcast.emit('emitBrightness', lighting["brightness"]);
+    socket.broadcast.emit('emitBrightness', lighting);
   })
   socket.on('setPreset', function(data) {
     var preset = parseInt(data);
@@ -231,7 +228,7 @@ io.sockets.on('connection', function (socket) {
     }
     updateLights();
     fs.writeFile(lightingDB, JSON.stringify(lighting));
-    socket.broadcast.emit('emitPreset', lighting["preset"]);
+    socket.broadcast.emit('emitPreset', lighting);
   })
   socket.on('setZoneColour', function(data) {
     var zoneid = data.zoneid;
@@ -254,7 +251,7 @@ io.sockets.on('connection', function (socket) {
         lighting["output"][offset+4] = 0; // Flash speed
         lighting["output"][offset+5] = 0; // Gradient change speed
         lighting["output"][offset+6] = 0; // Jumping colour change speed
-        lighting["output"][offset+7] = 0; // Control channels
+        lighting["output"][offset+7] = 30; // Control channels
         break;
       case 'rgb':
         lighting["output"][offset] = r;
@@ -265,7 +262,7 @@ io.sockets.on('connection', function (socket) {
     });
     updateLights();
     fs.writeFile(lightingDB, JSON.stringify(lighting));
-    socket.broadcast.emit('emitZones', lighting["zones"]);
+    socket.broadcast.emit('emitZones', lighting);
   });
 })
 
@@ -341,7 +338,7 @@ app.post('/api/lighting/lights', function (req, res) {
   }
   fs.writeFile(lightingDB, JSON.stringify(lighting));
   res.send(201, light);
-  io.sockets.emit('emitLights', lighting["lights"]);
+  io.sockets.emit('emitLights', lighting);
 });
 app.get('/api/lighting/light/:id', function (req, res) {
   var offset = parseInt(req.params.id - 1)
@@ -387,7 +384,7 @@ app.del('/api/lighting/light/:id', function (req, res) {
   }
   fs.writeFile(lightingDB, JSON.stringify(lighting));
   res.send(204);
-  io.sockets.emit('emitLights', lighting["lights"])
+  io.sockets.emit('emitLights', lighting)
 })
 /*
  * Preset routing
@@ -424,7 +421,7 @@ app.put('/api/lighting/preset/:id', function (req, res) {
   }
   fs.writeFile(lightingDB, JSON.stringify(lighting));
   res.send(204);
-  io.sockets.emit('emitPresets', lighting["presets"]);
+  io.sockets.emit('emitPresets', lighting);
 })
 /*
  * Zones routing
@@ -444,7 +441,7 @@ app.post('/api/lighting/zones', function (req, res) {
   lighting["zones"].push(zone);
   fs.writeFile(lightingDB, JSON.stringify(lighting));
   res.send(201, zone);
-  io.sockets.emit('emitZones', lighting["zones"]);
+  io.sockets.emit('emitZones', lighting);
 });
 app.put('/api/lighting/zones/:id', function (req, res) {
   var zone = {
@@ -468,14 +465,14 @@ app.put('/api/lighting/zones/:id', function (req, res) {
   }
   fs.writeFile(lightingDB, JSON.stringify(lighting));
   res.send(204);
-  io.sockets.emit('emitZones', lighting["zones"]);
+  io.sockets.emit('emitZones', lighting);
 })
 app.del('/api/lighting/zones/:id', function (req, res) {
   var zoneid = parseInt(req.params.id - 1)
   delete lighting["zones"][zoneid]
   fs.writeFile(lightingDB, JSON.stringify(lighting));
   res.send(204);
-  io.sockets.emit('emitZones', lighting["zones"]);
+  io.sockets.emit('emitZones', lighting);
 })
 
 //app.get('/api/zones/:name', zones.view)

@@ -4,8 +4,7 @@ $(document).ready(function() {
    */
   var socket = io.connect();
   socket.reconnect = true;
-  var lights;
-  var zones;
+  var lighting;
   /*
    * Respond to socket events
    */
@@ -18,12 +17,13 @@ $(document).ready(function() {
       .button("refresh");
   });
   socket.on('emitBrightness', function(data) {
-    $("#brightness-slider").slider('value', parseInt(data));
-    //$("#brightness-slider").slider('setvalue', parseInt(data));
+    lighting = data;
+    $("#brightness-slider").slider('value', parseInt(lighting.brightness));
   });
   socket.on('emitPreset', function(data) {
+    lighting = data;
     $('.btn-preset').removeClass('btn-preset-active').addClass('btn-preset-inactive');
-    $('#preset-button-' + data).removeClass('btn-preset-inactive').addClass('btn-preset-active').button('refresh');
+    $('#preset-button-' + lighting.preset).removeClass('btn-preset-inactive').addClass('btn-preset-active').button('refresh');
   });
 
   /*
@@ -31,11 +31,12 @@ $(document).ready(function() {
    * an updated version
    */
   socket.on('emitPresets', function(data) {
+    lighting = data;
     /*
      * Build up the table rows first.
      */
     var presetrows = [];
-    $.each(data, function(index, preset) {
+    $.each(lighting.presets, function(index, preset) {
       /*
        * Update preset buttons on main page
        */
@@ -93,21 +94,39 @@ $(document).ready(function() {
    * an updated version
    */
   socket.on('emitZones', function(data) {
-    zones = data;
+    lighting = data;
     /*
      * Build up the table rows first.
      */
     var zonerows = [];
-    $.each(data, function(index, zone) {
+    $.each(lighting.zones, function(index, zone) {
       if (!zone) {
         return true;
       }
+      var zonelights;
+      zone["lights"].forEach(function(light) {
+        var addr = light - 1; // display vs array offset
+        var desc;
+        if (lighting.lights[addr]["description"]) {
+          desc = lighting.lights[addr].description;
+        } else {
+          desc = light;
+        }
+        if (zonelights) {
+          zonelights += '<br/>' + desc;
+        } else {
+          zonelights = desc;
+        }
+      });
       zonerows.push($('<tr>')
         .append($('<td>', {style: "text-align: center"}).text(zone["id"]))
         .append($('<td>').text(zone["name"]))
-        .append($('<td>').text(zone["lights"]))
+        .append($('<td>').html(zonelights))
         .append($('<td>').text(zone["description"]))
-        .append($('<td>', {style: "background: " + zone["colour"]}))
+        .append($('<td>', {
+          'id': "zone-bgcol-" + zone.id,
+          'style': "background: " + zone["colour"]
+        }))
         .append($('<td>')
           .append($('<button>', {
               'class': 'btn btn-info btn-block open-modal-change-colour',
@@ -152,7 +171,7 @@ $(document).ready(function() {
       );
   });
   socket.on('emitLights', function(data) {
-    lights = data;
+    lighting = data;
     var lightToName = {
       "rgb": "RGB",
       "par8": "PAR8",
@@ -160,13 +179,17 @@ $(document).ready(function() {
     }
     var lightrows = [];
     var lightboxes = [];
-    $.each(data, function(index, light) {
+    $.each(lighting.lights, function(index, light) {
       var addr = index + 1;
       if (!light || light.type === undefined || !(lightToName[light.type])) {
         return true;
       }
       lightboxes.push($('<input>', {type: "checkbox", name: "lights[]", value: addr}))
-      lightboxes.push(' ' + light.description)
+      if (light.description) {
+        lightboxes.push(' ' + light.description);
+      } else {
+        lightboxes.push(' ' + addr);
+      }
       lightboxes.push('<br>')
       switch (light.type) {
       case 'single':
@@ -371,19 +394,21 @@ $(document).ready(function() {
     var zoneid = $(this).data('id');
     var pos = $('#colour-wheel').offset();
     var size = $('#colour-wheel').height();
-    var startcolour = zones[zoneid].colour;
+    var startcolour = lighting.zones[zoneid].colour;
     $('#modal-change-colour').data('start-colour', startcolour);
     $('#modal-change-colour').data('zone-id', zoneid);
     wheel = Raphael.colorwheel(pos.left, pos.top, 350, startcolour, 'colour-wheel');
     wheel.onchange = function(colour) {
-      zones[zoneid].colour = colour
+      lighting.zones[zoneid].colour = colour;
+      $('#zone-bgcol-' + (zoneid + 1)).css("background-color", '#' + colour);
       socket.emit('setZoneColour', {
         'zoneid': zoneid,
         'colour': colour,
       });
     };
     socket.on('emitZones', function(data) {
-      $.each(data, function(index, zone) {
+      lighting = data;
+      $.each(lighting.zones, function(index, zone) {
         if (index === zoneid) {
           wheel.color(zone.colour);
         }
@@ -391,11 +416,14 @@ $(document).ready(function() {
     });
   });
   $(document).on('click', '#modal-change-colour .revert-colour', function() {
+    var zoneid = $('#modal-change-colour').data('zone-id');
+    var colour = $('#modal-change-colour').data('start-colour');
     var revert = {
-      'zoneid': $('#modal-change-colour').data('zone-id'),
-      'colour': $('#modal-change-colour').data('start-colour'),
+      'zoneid': zoneid,
+      'colour': colour,
     };
-    zones[revert.zoneid].colour = revert.colour;
+    $('#zone-bgcol-' + (zoneid + 1)).css("background-color", '#' + colour);
+    lighting.zones[revert.zoneid].colour = revert.colour;
     socket.emit('setZoneColour', revert);
   });
   $(document).on('hide', '#modal-change-colour', function() {
