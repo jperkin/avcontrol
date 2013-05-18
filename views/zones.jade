@@ -32,6 +32,21 @@ block content
             button.btn.btn-close(data-dismiss="modal") Cancel
             button.btn.btn-primary(type="submit") Delete
     div.row
+      div.hide.modal#modal-edit-zone
+        form#form-edit-zone
+          div.modal-header
+            button.close(data-dismiss="modal") x
+            h3 Edit Zone
+          div.modal-body
+            p Warning: Click the Update button, do not hit enter.
+            input(type="text", id="name", name="name", value="")
+            input(type="text", id="description", name="description", value="")
+            input(type="hidden", id="edit-zone-id", name="edit-zone-id", value="")
+            div#zone-lights-list
+          div.modal-footer
+            button.btn.btn-close(data-dismiss="modal") Cancel
+            button.btn.btn-primary(type="submit") Update
+    div.row
       div.span1.skip11
         div.hide.modal#addNewZone(aria-hidden="true")
           form#createNewZone(data-async)

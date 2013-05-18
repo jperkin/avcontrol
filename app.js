@@ -473,17 +473,18 @@ app.put('/api/lighting/zone/:id', function (req, res) {
     colour: req.body.colour,
     lights: req.body.lights
   };
+  var addr = parseInt(zone.id - 1);
   if (zone.name) {
-    lighting["zones"][zone.id]["name"] = zone.name
+    lighting["zones"][addr]["name"] = zone.name
   }
   if (zone.description) {
-    lighting["zones"][zone.id]["description"] = zone.description
+    lighting["zones"][addr]["description"] = zone.description
   }
   if (zone.colour) {
-    lighting["zones"][zone.id]["colour"] = zone.colour
+    lighting["zones"][addr]["colour"] = zone.colour
   }
   if (zone.lights) {
-    lighting["zones"][zone.id]["lights"] = zone.lights
+    lighting["zones"][addr]["lights"] = zone.lights
   }
   fs.writeFile(lightingDB, JSON.stringify(lighting));
   res.send(204);

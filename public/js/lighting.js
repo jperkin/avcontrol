@@ -138,7 +138,14 @@ $(document).ready(function() {
           )
         )
         .append($('<td>')
-          .append($('<button>', {"class": "btn btn-info btn-block"})
+          .append($('<button>', {
+              'class': 'btn btn-info btn-block open-modal-edit-zone',
+              'data-toggle': 'modal',
+              'data-target': '#modal-edit-zone',
+              'data-id': zone.id,
+              'data-name': zone['name'],
+              'data-description': zone['description'],
+            })
             .text('Edit')
           )
         )
@@ -184,18 +191,23 @@ $(document).ready(function() {
     }
     var lightrows = [];
     var lightboxes = [];
+    var uplightboxes = [];
     $.each(lighting.lights, function(index, light) {
       var addr = index + 1;
       if (!light || light.type === undefined || !(lightToName[light.type])) {
         return true;
       }
       lightboxes.push($('<input>', {type: "checkbox", name: "lights[]", value: addr}))
+      uplightboxes.push($('<input>', {type: "checkbox", id: "light-checkbox-" + addr, name: "lights[]", value: addr}))
       if (light.description) {
         lightboxes.push(' ' + light.description);
+        uplightboxes.push(' ' + light.description);
       } else {
         lightboxes.push(' ' + addr);
+        uplightboxes.push(' ' + addr);
       }
       lightboxes.push('<br>')
+      uplightboxes.push('<br>')
       switch (light.type) {
       case 'single':
         var ids = addr;
@@ -251,6 +263,8 @@ $(document).ready(function() {
       );
     $('#lightsCheckboxList').empty();
     $('#lightsCheckboxList').append($('<p>').append(lightboxes));
+    $('#zone-lights-list').empty();
+    $('#zone-lights-list').append($('<p>').append(uplightboxes));
   });
   socket.on('disconnect', function() {
     $("#server-status")
@@ -358,6 +372,35 @@ $(document).ready(function() {
     });
     ev.preventDefault();
     $('#modal-add-light').modal('hide');
+    return false;
+  });
+  /*
+   * Zone edit
+   */
+  $(document).on('click', '.open-modal-edit-zone', function() {
+    var zoneId = $(this).data('id');
+    var zoneName = $(this).data('name');
+    var zoneDescription = $(this).data('description');
+    $(':input:checkbox').each(function(index, cbox) {
+      cbox.checked = false;
+      $.each(lighting.zones[zoneId - 1].lights, function(index, light) {
+        if (cbox.value == light) {
+          cbox.checked = true;
+        }
+      });
+    });
+    $('#edit-zone-id').val(zoneId);
+    $('#name').val(zoneName);
+    $('#description').val(zoneDescription);
+  });
+  $('#form-edit-zone').on('submit', function(event) {
+    $.ajax({
+      type: "PUT",
+      url: "/api/lighting/zone/" + $('#edit-zone-id').val(),
+      data: $(this).serialize(),
+    });
+    event.preventDefault();
+    $('#modal-edit-zone').modal('hide');
     return false;
   });
   /*
