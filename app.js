@@ -227,8 +227,30 @@ io.sockets.on('connection', function (socket) {
       lighting["output"][i] = lighting["presets"][preset]["values"][i]
     }
     updateLights();
+    /*
+     * XXX: hack!
+     */
+    lighting.zones.forEach(function(zone, index) {
+      if (zone.lights) {
+        var l = parseInt(zone.lights[0] - 1);
+        var offset = 0;
+        var col = '#';
+        if (lighting.lights[l].type === 'par8') {
+          offset = 1;
+        }
+        [0, 1, 2].forEach(function(i) {
+          var d = parseInt(lighting.output[l + offset + i]).toString(16);
+          if (d <= 9) {
+            d = '0' + d;
+          }
+          col += d;
+        });
+        lighting.zones[index].colour = col;
+      }
+    });
     fs.writeFile(lightingDB, JSON.stringify(lighting));
     socket.broadcast.emit('emitPreset', lighting);
+    socket.broadcast.emit('emitZones', lighting);
   })
   socket.on('setZoneColour', function(data) {
     var zoneid = data.zoneid;
@@ -435,7 +457,7 @@ app.post('/api/lighting/zones', function (req, res) {
     id: id,
     name: req.body.name || 'Unnamed',
     description: req.body.description || '',
-    colour: req.body.colour || '000000',
+    colour: req.body.colour || '#000000',
     lights: req.body.lights || [],
   };
   lighting["zones"].push(zone);
