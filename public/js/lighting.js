@@ -4,6 +4,7 @@ $(document).ready(function() {
    */
   var socket = io.connect();
   socket.reconnect = true;
+  var lights;
   var zones;
   /*
    * Respond to socket events
@@ -151,10 +152,11 @@ $(document).ready(function() {
       );
   });
   socket.on('emitLights', function(data) {
+    lights = data;
     var lightToName = {
-      "r": "RGB",
-      "rf": "RGB+Fade",
-      "w": "White"
+      "rgb": "RGB",
+      "par8": "PAR8",
+      "single": "Single"
     }
     var lightrows = [];
     var lightboxes = [];
@@ -166,12 +168,16 @@ $(document).ready(function() {
       lightboxes.push($('<input>', {type: "checkbox", name: "lights[]", value: addr}))
       lightboxes.push(' ' + light.description)
       lightboxes.push('<br>')
-      if (light.type === "w") {
+      switch (light.type) {
+      case 'single':
         var ids = addr;
-      } else if (light.type === "r") {
-        var ids = addr + ', ' + (addr + 1) + ', ' + (addr + 2);
-      } else if (light.type === "rf") {
-        var ids = addr + ', ' + (addr + 1) + ', ' + (addr + 2) + ', ' + (addr + 3);
+        break;
+      case 'rgb':
+        var ids = addr + ' - ' + (addr + 2);
+        break;
+      case 'par8':
+        var ids = addr + ' - ' + (addr + 7);
+        break;
       }
       lightrows.push($('<tr>')
         .append($('<td>', {style: "text-align: center"}).text(ids))

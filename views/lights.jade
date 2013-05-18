@@ -22,9 +22,9 @@ block content
               input(type="text", id="address", name="address", placeholder="Base Light Address")
               input(type="text", id="description", name="description", placeholder="Description (Optional)")
               select(id="type", name="type")
+                option(value="single") Single LED
                 option(value="rgb") RGB LED Set
-                option(value="white") Single LED
-                option(value="rgbf") RGB LED Set + Fade
+                option(value="par8") RGB PAR LED Set
             div.modal-footer
               button.btn.btn-close(data-dismiss="modal") Cancel
               button.btn.btn-primary(type="submit") Create

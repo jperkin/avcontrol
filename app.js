@@ -192,6 +192,7 @@ updateLights = function() {
   for (var i = 0; i < 512; i++) {
     tmp[i] = parseInt(lighting["output"][i] * lighting["brightness"] / 100)
   }
+  console.log(JSON.stringify(tmp));
   artnet.send(tmp);
 }
 
@@ -245,13 +246,17 @@ io.sockets.on('connection', function (socket) {
     lighting["zones"][zoneid]["lights"].forEach(function(light) {
       var offset = parseInt(light - 1);
       switch (lighting["lights"][offset]["type"]) {
-      case 'rf':
-        lighting["output"][offset] = r;
-        lighting["output"][offset+1] = g;
-        lighting["output"][offset+2] = b;
-        lighting["output"][offset+3] = 255; /* XXX: unsupported */
+      case 'par8':
+        lighting["output"][offset] = 255; // Dimmer
+        lighting["output"][offset+1] = r;
+        lighting["output"][offset+2] = g;
+        lighting["output"][offset+3] = b;
+        lighting["output"][offset+4] = 0; // Flash speed
+        lighting["output"][offset+5] = 0; // Gradient change speed
+        lighting["output"][offset+6] = 0; // Jumping colour change speed
+        lighting["output"][offset+7] = 0; // Control channels
         break;
-      case 'r':
+      case 'rgb':
         lighting["output"][offset] = r;
         lighting["output"][offset+1] = g;
         lighting["output"][offset+2] = b;
@@ -311,20 +316,28 @@ app.post('/api/lighting/lights', function (req, res) {
   var light = {
     address: req.body.address,
     description: req.body.description || '',
-    type: req.body.type
+    type: req.body.type || 'single'
   };
   var offset = parseInt(light["address"] - 1)
-  if (light["type"] == "rgbf") {
-    lighting["lights"][offset] = {'type': 'rf', 'description': light["description"]};
-    lighting["lights"][offset+1] = {'type': 'g'};
-    lighting["lights"][offset+2] = {'type': 'b'};
-    lighting["lights"][offset+3] = {'type': 'f'};
-  } else if (light["type"] == "rgb") {
-    lighting["lights"][offset] = {'type': 'r', 'description': light["description"]};
-    lighting["lights"][offset+1] = {'type': 'g'};
-    lighting["lights"][offset+2] = {'type': 'b'};
-  } else {
-    lighting["lights"][offset] = {'type': 'w', 'description': light["description"]}
+  switch (light.type) {
+  case 'par8':
+    lighting["lights"][offset] = {'type': 'par8', 'description': light.description};
+    lighting["lights"][offset+1] = {};
+    lighting["lights"][offset+2] = {};
+    lighting["lights"][offset+3] = {};
+    lighting["lights"][offset+4] = {};
+    lighting["lights"][offset+5] = {};
+    lighting["lights"][offset+6] = {};
+    lighting["lights"][offset+7] = {};
+    break;
+  case 'rgb':
+    lighting["lights"][offset] = {'type': 'rgb', 'description': light.description};
+    lighting["lights"][offset+1] = {};
+    lighting["lights"][offset+2] = {};
+    break;
+  case 'single':
+    lighting["lights"][offset] = {'type': 'single', 'description': light.description};
+    break;
   }
   fs.writeFile(lightingDB, JSON.stringify(lighting));
   res.send(201, light);
@@ -352,17 +365,25 @@ app.put('/api/lighting/light/:id', function (req, res) {
 })
 app.del('/api/lighting/light/:id', function (req, res) {
   var addr = parseInt(req.params.id)
-  if (lighting["lights"][addr]["type"] === "rf") {
+  switch (lighting["lights"][addr]["type"]) {
+  case 'single':
+    delete lighting["lights"][addr]
+    break;
+  case 'rgb':
+    delete lighting["lights"][addr]
+    delete lighting["lights"][addr+1]
+    delete lighting["lights"][addr+2]
+    break;
+  case 'par8':
     delete lighting["lights"][addr]
     delete lighting["lights"][addr+1]
     delete lighting["lights"][addr+2]
     delete lighting["lights"][addr+3]
-  } else if (lighting["lights"][addr]["type"] === "r") {
-    delete lighting["lights"][addr]
-    delete lighting["lights"][addr+1]
-    delete lighting["lights"][addr+2]
-  } else if (lighting["lights"][addr]["type"] === "w") {
-    delete lighting["lights"][addr]
+    delete lighting["lights"][addr+4]
+    delete lighting["lights"][addr+5]
+    delete lighting["lights"][addr+6]
+    delete lighting["lights"][addr+7]
+    break;
   }
   fs.writeFile(lightingDB, JSON.stringify(lighting));
   res.send(204);
