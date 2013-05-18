@@ -465,7 +465,7 @@ app.post('/api/lighting/zones', function (req, res) {
   res.send(201, zone);
   io.sockets.emit('emitZones', lighting);
 });
-app.put('/api/lighting/zones/:id', function (req, res) {
+app.put('/api/lighting/zone/:id', function (req, res) {
   var zone = {
     id: req.params.id,
     name: req.body.name,
@@ -489,7 +489,7 @@ app.put('/api/lighting/zones/:id', function (req, res) {
   res.send(204);
   io.sockets.emit('emitZones', lighting);
 })
-app.del('/api/lighting/zones/:id', function (req, res) {
+app.del('/api/lighting/zone/:id', function (req, res) {
   var zoneid = parseInt(req.params.id - 1)
   delete lighting["zones"][zoneid]
   fs.writeFile(lightingDB, JSON.stringify(lighting));

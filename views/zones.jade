@@ -20,6 +20,18 @@ block content
         button.btn.btn-primary(data-dismiss="modal") Done
         button.btn.revert-colour(data-dismiss="modal") Cancel
     div.row
+      div.hide.modal#modal-delete-zone
+        form#form-delete-zone
+          div.modal-header
+            button.close(data-dismiss="modal") x
+            h3 Delete Zone
+          div.modal-body
+            input(type="hidden", id="delete-zone-id", name="delete-zone-id", value="")
+            p Are you sure?
+          div.modal-footer
+            button.btn.btn-close(data-dismiss="modal") Cancel
+            button.btn.btn-primary(type="submit") Delete
+    div.row
       div.span1.skip11
         div.hide.modal#addNewZone(aria-hidden="true")
           form#createNewZone(data-async)

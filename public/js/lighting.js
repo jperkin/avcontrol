@@ -143,7 +143,12 @@ $(document).ready(function() {
           )
         )
         .append($('<td>')
-          .append($('<button>', {"class": "btn btn-danger btn-block"})
+          .append($('<button>', {
+              'class': 'btn btn-danger btn-block open-modal-delete-zone',
+              'data-toggle': 'modal',
+              'data-target': '#modal-delete-zone',
+              'data-id': zone.id,
+            })
             .text('Delete')
           )
         )
@@ -447,6 +452,21 @@ $(document).ready(function() {
     });
     ev.preventDefault();
     $('#modal-save-preset').modal('hide');
+    return false;
+  });
+  /*
+   * Delete zone
+   */
+  $(document).on('click', '.open-modal-delete-zone', function() {
+    $('#delete-zone-id').val($(this).data('id'));
+  });
+  $('#form-delete-zone').on('submit', function(ev) {
+    $.ajax({
+      type: "DELETE",
+      url: "/api/lighting/zone/" + $('#delete-zone-id').val(),
+    });
+    ev.preventDefault();
+    $('#modal-delete-zone').modal('hide');
     return false;
   });
   /*
