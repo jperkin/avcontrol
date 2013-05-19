@@ -452,7 +452,13 @@ app.get('/api/lighting/zones', function (req, res) {
   res.send(lighting["zones"]);
 })
 app.post('/api/lighting/zones', function (req, res) {
-  var id = lighting["zones"].length + 1;
+  var id = lighting.zones.length + 1;
+  for (var i = 0; i < lighting.zones.length; i++) {
+    if (lighting.zones[i] === undefined || lighting.zones[i] === null) {
+      id = i + 1;
+      break;
+    }
+  }
   var zone = {
     id: id,
     name: req.body.name || 'Unnamed',
@@ -460,7 +466,11 @@ app.post('/api/lighting/zones', function (req, res) {
     colour: req.body.colour || '#000000',
     lights: req.body.lights || [],
   };
-  lighting["zones"].push(zone);
+  if (id > lighting.zones.length) {
+    lighting["zones"].push(zone);
+  } else {
+    lighting["zones"][id - 1] = zone;
+  }
   fs.writeFile(lightingDB, JSON.stringify(lighting));
   res.send(201, zone);
   io.sockets.emit('emitZones', lighting);
