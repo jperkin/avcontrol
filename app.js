@@ -231,7 +231,7 @@ io.sockets.on('connection', function (socket) {
      * XXX: hack!
      */
     lighting.zones.forEach(function(zone, index) {
-      if (zone.lights) {
+      if (zone.lights && zone.lights.length > 0) {
         var l = parseInt(zone.lights[0] - 1);
         var offset = 0;
         var col = '#';
