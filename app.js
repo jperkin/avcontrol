@@ -276,7 +276,7 @@ io.sockets.on('connection', function (socket) {
         lighting["output"][offset+4] = 0; // Flash speed
         lighting["output"][offset+5] = 0; // Gradient change speed
         lighting["output"][offset+6] = 0; // Jumping colour change speed
-        lighting["output"][offset+7] = 30; // Control channels
+        lighting["output"][offset+7] = 0; // Control channels
         break;
       case 'rgb':
         lighting["output"][offset] = r;
