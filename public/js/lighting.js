@@ -107,7 +107,7 @@ $(document).ready(function() {
       zone["lights"].forEach(function(light) {
         var addr = light - 1; // display vs array offset
         var desc;
-        if (lighting.lights[addr]["description"]) {
+        if (lighting.lights[addr] && lighting.lights[addr]["description"]) {
           desc = lighting.lights[addr].description;
         } else {
           desc = light;
