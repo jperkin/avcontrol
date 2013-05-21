@@ -1,9 +1,3 @@
-/*
- * Config
- */
-var artnethost = '192.168.0.90';
-var sessionsecret = 'vewwysecuwe';
-
 /**
  * Module dependencies.
  */
@@ -19,13 +13,14 @@ var navLinks = {
   ],
 }
 
+var config = require('./config');
 var express = require('express')
   , routes = require('./routes')
   , http = require('http')
   , flash = require('connect-flash')
   , passport = require('passport')
   , LocalStrategy = require('passport-local').Strategy
-  , artnet = require('artnet-node').Client.createClient(artnethost, 6454)
+  , artnet = require('artnet-node').Client.createClient(config.artnethost, 6454)
   , async = require('async')
   , fs = require('fs')
   , path = require('path');
@@ -97,7 +92,7 @@ app.use(express.bodyParser());
 app.use(express.methodOverride());
 app.use(express.cookieParser());
 app.use(express.session({
-  secret: sessionsecret
+  secret: config.sessionsecret
 }));
 app.use(flash());
 app.use(passport.initialize());
