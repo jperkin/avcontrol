@@ -144,6 +144,8 @@ server.listen(app.get('port'), function(){
  */
 var lightingDB = "lighting.json";
 var lighting = {};
+var saveLighting = 0;
+var updateLighting = 0;
 /*
 var lighting["output"] = [];
 var lighting["brightness"] = 0;
@@ -182,13 +184,34 @@ fs.exists(lightingDB, function (exists) {
   }
 })
 
-updateLights = function() {
-  var tmp = [];
-  for (var i = 0; i < 512; i++) {
-    tmp[i] = parseInt(lighting["output"][i] * lighting["brightness"] / 100)
+/*
+ * Check for lighting updates every 5 seconds and flush to disk on change.
+ */
+setInterval(function() {
+  if (saveLighting) {
+    saveLighting = 0;
+    fs.writeFile(lightingDB, JSON.stringify(lighting));
   }
-  console.log(JSON.stringify(tmp));
-  artnet.send(tmp);
+}, 5000);
+saveLights = function() {
+  saveLighting = 1;
+}
+
+/*
+ * Send lighting updates on change, limited to 50Hz.
+ */
+var sendOutput = new Array(512);
+setInterval(function() {
+  if (updateLighting) {
+    updateLighting = 0;
+    for (var i = 0; i < sendOutput.length; i++) {
+      sendOutput[i] = parseInt(lighting["output"][i] * lighting["brightness"] / 100)
+    }
+    artnet.send(sendOutput);
+  }
+}, 20);
+updateLights = function() {
+  updateLighting = 1;
 }
 
 /*
@@ -212,7 +235,7 @@ io.sockets.on('connection', function (socket) {
     var brightness = parseInt(data);
     lighting["brightness"] = brightness;
     updateLights();
-    fs.writeFile(lightingDB, JSON.stringify(lighting));
+    saveLights();
     socket.broadcast.emit('emitBrightness', lighting);
   })
   socket.on('setPreset', function(data) {
@@ -246,7 +269,7 @@ io.sockets.on('connection', function (socket) {
         lighting.zones[index].colour = col;
       }
     });
-    fs.writeFile(lightingDB, JSON.stringify(lighting));
+    saveLights();
     socket.broadcast.emit('emitPreset', lighting);
     socket.broadcast.emit('emitZones', lighting);
   })
@@ -281,7 +304,7 @@ io.sockets.on('connection', function (socket) {
       }
     });
     updateLights();
-    fs.writeFile(lightingDB, JSON.stringify(lighting));
+    saveLights();
     socket.broadcast.emit('emitZones', lighting);
   });
 })
@@ -323,7 +346,7 @@ app.post('/api/lighting/output', function (req, res) {
     }
   }
   updateLights();
-  fs.writeFile(lightingDB, JSON.stringify(lighting));
+  saveLights();
   res.send(lighting["output"]);
 })
 app.get('/api/lighting/lights', function (req, res) {
@@ -356,7 +379,7 @@ app.post('/api/lighting/lights', function (req, res) {
     lighting["lights"][offset] = {'type': 'single', 'description': light.description};
     break;
   }
-  fs.writeFile(lightingDB, JSON.stringify(lighting));
+  saveLights();
   res.send(201, light);
   io.sockets.emit('emitLights', lighting);
 });
@@ -377,7 +400,7 @@ app.put('/api/lighting/light/:id', function (req, res) {
   };
   var offset = parseInt(light.id - 1)
   lighting["lights"][offset] = light;
-  fs.writeFile(lightingDB, JSON.stringify(lighting));
+  saveLights();
   res.send(204);
 })
 app.del('/api/lighting/light/:id', function (req, res) {
@@ -402,7 +425,7 @@ app.del('/api/lighting/light/:id', function (req, res) {
     delete lighting["lights"][addr+7]
     break;
   }
-  fs.writeFile(lightingDB, JSON.stringify(lighting));
+  saveLights();
   res.send(204);
   io.sockets.emit('emitLights', lighting)
 })
@@ -439,7 +462,7 @@ app.put('/api/lighting/preset/:id', function (req, res) {
       lighting["presets"][preset.id]["values"][i] = lighting["output"][i]
     }
   }
-  fs.writeFile(lightingDB, JSON.stringify(lighting));
+  saveLights();
   res.send(204);
   io.sockets.emit('emitPresets', lighting);
 })
@@ -469,7 +492,7 @@ app.post('/api/lighting/zones', function (req, res) {
   } else {
     lighting["zones"][id - 1] = zone;
   }
-  fs.writeFile(lightingDB, JSON.stringify(lighting));
+  saveLights();
   res.send(201, zone);
   io.sockets.emit('emitZones', lighting);
 });
@@ -494,14 +517,14 @@ app.put('/api/lighting/zone/:id', function (req, res) {
   if (zone.lights) {
     lighting["zones"][addr]["lights"] = zone.lights
   }
-  fs.writeFile(lightingDB, JSON.stringify(lighting));
+  saveLights();
   res.send(204);
   io.sockets.emit('emitZones', lighting);
 })
 app.del('/api/lighting/zone/:id', function (req, res) {
   var zoneid = parseInt(req.params.id - 1)
   delete lighting["zones"][zoneid]
-  fs.writeFile(lightingDB, JSON.stringify(lighting));
+  saveLights();
   res.send(204);
   io.sockets.emit('emitZones', lighting);
 })
