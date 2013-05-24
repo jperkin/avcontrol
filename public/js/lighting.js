@@ -5,6 +5,7 @@ $(document).ready(function() {
   var socket = io.connect();
   socket.reconnect = true;
   var lighting;
+  var power = {};
   /*
    * Respond to socket events
    */
@@ -24,6 +25,98 @@ $(document).ready(function() {
     lighting = data;
     $('.btn-preset').removeClass('btn-preset-active').addClass('btn-preset-inactive');
     $('#preset-button-' + lighting.preset).removeClass('btn-preset-inactive').addClass('btn-preset-active').button('refresh');
+  });
+
+  socket.on('emit-power-switches', function(data) {
+    power.switches = data;
+
+    var pswitch_rows = [];
+    var pswitch_buttons = [];
+    $.each(power.switches, function(index, pswitch) {
+      if (!pswitch) {
+        return;
+      }
+      pswitch_rows.push($('<tr>')
+        .append($('<td>', {style: 'text-align: center'}).text(index))
+        .append($('<td>').text(pswitch.description))
+        .append($('<td>')
+          .append($('<button>', {
+              'class': 'btn btn-info btn-block open-modal-edit-power-switch',
+              'data-toggle': 'modal',
+              'data-target': '#modal-edit-power-switch',
+              'data-id': index,
+              'data-description': pswitch.description,
+            })
+            .text('Edit')
+          )
+        )
+        .append($('<td>')
+          .append($('<button>', {
+            'class': 'btn btn-danger btn-block open-modal-delete-power-switch',
+            'data-toggle': 'modal',
+            'data-target': '#modal-delete-power-switch',
+            'data-id': index,
+            })
+            .text('Delete')
+          )
+        )
+      )
+      pswitch_buttons.push($('<tr>')
+        .append($('<td>', {'stype': 'text-align: center'}).text(index))
+        .append($('<td>').text(pswitch.description))
+        .append($('<td>')
+          .append($('<button>', {
+            'class': 'btn btn-success btn-block set-power-switch',
+            'data-target': '.set-power-switch',
+            'data-id': index,
+            'data-action': 'on'
+          })
+          .text('On')
+          )
+        )
+        .append($('<td>')
+          .append($('<button>', {
+            'class': 'btn btn-danger btn-block set-power-switch',
+            'data-target': '.set-power-switch',
+            'data-id': index,
+            'data-action': 'off'
+          })
+          .text('Off')
+          )
+        )
+      );
+    });
+    /*
+     * Now generate the finished table.
+     */
+    $('#power-switch-buttons').empty();
+    $('#power-switch-buttons')
+      .append($('<table>', {"class": "table table-striped table-bordered"})
+        .append($('<thead>')
+          .append($('<tr>')
+            .append($('<th>').text('Switch ID'))
+            .append($('<th>').text('Description'))
+            .append($('<th>').attr('colspan', 2).text('Control'))
+          )
+        )
+        .append($('<tbody>')
+          .append(pswitch_buttons)
+        )
+      );
+    $('#list-power-switches').empty();
+    $('#list-power-switches')
+      .append($('<table>', {"class": "table table-striped table-bordered"})
+        .append($('<thead>')
+          .append($('<tr>')
+            .append($('<th>').text('Switch ID'))
+            .append($('<th>').text('Description'))
+            .append($('<th>').attr('colspan', 2).text('Modify'))
+          )
+        )
+        .append($('<tbody>')
+          .append(pswitch_rows)
+        )
+      );
   });
 
   /*
@@ -358,6 +451,7 @@ $(document).ready(function() {
     }
   });
   */
+  //
   $('#modal-add-light').on('shown', function () {
     $('input:text:visible:first', this).focus();
   });
@@ -527,7 +621,59 @@ $(document).ready(function() {
     $('#modal-delete-light').modal('hide');
     return false;
   });
+  /*
+   * Power control
+   */
+  $('#modal-add-power-switch').on('shown', function () {
+    $('input:text:visible:first', this).focus();
+  });
+  $('#form-add-power-switch').on('submit', function(ev) {
+    $.ajax({
+      type: "POST",
+      url: "/api/power/switches",
+      data: $(this).serialize(),
+      success:function() {
+        $(':input').val('');
+      }
+    });
+    ev.preventDefault();
+    $('#modal-add-power-switch').modal('hide');
+    return false;
+  });
+  $(document).on('click', '.open-modal-edit-power-switch', function() {
+    $('#edit-power-switch-id').val($(this).data('id'));
+    $('#edit-power-switch-description').val($(this).data('description'));
+  });
+  $('#form-edit-power-switch').on('submit', function(ev) {
+    $.ajax({
+      type: "PUT",
+      url: "/api/power/switch/" + $('#edit-power-switch-id').val(),
+      data: $(this).serialize(),
+    });
+    ev.preventDefault();
+    $('#modal-edit-power-switch').modal('hide');
+    return false;
+  });
+  $(document).on('click', '.open-modal-delete-power-switch', function() {
+    $('#delete-power-switch-id').val($(this).data('id'));
+  });
+  $('#form-delete-power-switch').on('submit', function(ev) {
+    $.ajax({
+      type: "DELETE",
+      url: "/api/power/switch/" + $('#delete-power-switch-id').val(),
+    });
+    ev.preventDefault();
+    $('#modal-delete-power-switch').modal('hide');
+    return false;
+  });
 
+  $(document).on('click', '.set-power-switch', function() {
+    $.ajax({
+      type: "PUT",
+      url: "/api/power/switch/" + $(this).data('id'),
+      data: {"state": $(this).data('action')},
+    });
+  });
 
   /*
    * Preset button click

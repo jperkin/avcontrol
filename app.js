@@ -4,12 +4,14 @@
 
 var navLinks = {
   user: [ 
-    { label: 'Lighting', key: 'lighting', path: '/lighting' }
+    { label: 'Lighting', key: 'lighting', path: '/lighting' },
+    { label: 'Power', key: 'power', path: '/power' }
   ],
   admin: [
     { label: 'Presets', key: 'presets', path: '/presets' },
     { label: 'Zones', key: 'zones', path: '/zones' },
-    { label: 'Lights', key: 'lights', path: '/lights' }
+    { label: 'Lights', key: 'lights', path: '/lights' },
+    { label: 'Switches', key: 'switches', path: '/switches' }
   ],
 }
 
@@ -114,9 +116,11 @@ app.locals.navLinks = navLinks;
 
 app.get('/', routes.index);
 app.get('/lighting', routes.lighting);
+app.get('/power', routes.power);
 app.get('/presets', ensureAuthenticated, routes.presets);
 app.get('/zones', ensureAuthenticated, routes.zones);
 app.get('/lights', ensureAuthenticated, routes.lights);
+app.get('/switches', ensureAuthenticated, routes.switches);
 app.get('/login', routes.login);
 
 app.post('/login',
@@ -214,6 +218,78 @@ updateLights = function() {
   updateLighting = 1;
 }
 
+var powerDB = "power.json";
+var power = {};
+fs.exists(powerDB, function (exists) {
+  if (exists) {
+    fs.readFile(powerDB, function (err, data) {
+      if (err) {
+        return console.log(err);
+      }
+      power = JSON.parse(data);
+    })
+  } else {
+    power.switches = [];
+    fs.writeFile(powerDB, JSON.stringify(power));
+  }
+})
+
+/*
+ * Set a power switch on/off via Z-Wave
+ */
+var setPowerSwitch = function (powsock)
+{
+  var psid = parseInt(powsock.id);
+
+  /*
+   * Z-Wave protocol packet
+   */
+  var packet = [
+    0x06, // command terminator?  appear to require two
+    0x06,
+    0x01,
+    0x0a,
+    0x00,
+    0x13,
+    psid, // node id
+    0x03,
+    0x25, // COMMAND_CLASS_SWITCH_BINARY
+    0x01,
+    powsock.state === 'on' ? 0xff : 0x00,
+    0x25, // transmit options (ACK | AUTO_ROUTE | EXPLORE)
+    0x10, // packet length
+  ]
+
+  /*
+   * Calculate and append packet checksum
+   */
+  var csum = 0xff;
+  for (var i = 3; i < packet.length; i++) {
+    csum ^= packet[i];
+  }
+  packet.push(csum);
+
+  /*
+   * Create buffer and send
+   */
+  var zwave = new Buffer(packet.length);
+  packet.forEach(function (val, idx) {
+    var hexval = parseInt(val).toString(16);
+    zwave.write(hexval.length > 1 ? hexval : '0' + hexval, idx, 'hex');
+  });
+
+  fs.open('/dev/ttyUSB0', 'a', function (err, fd) {
+    if (err) {
+      return console.log(err);
+    }
+    fs.write(fd, zwave, 0, zwave.length, -1, function(err) {
+      if (err) {
+        return console.log(err);
+      }
+    })
+  })
+}
+
 /*
  * Socket events
  */
@@ -227,10 +303,17 @@ io.sockets.on('connection', function (socket) {
   socket.emit('emitPresets', lighting)
   socket.emit('emitZones', lighting)
   socket.emit('emitLights', lighting)
+  socket.emit('emit-power-switches', power.switches)
 
   /*
    * ..then update on events
    */
+  socket.on('setPowerSwitch', function(data) {
+    power.switches[data.socket].state = data.state;
+    updateSocket(sockets[data.socket]);
+    fs.writeFile(powerDB, JSON.stringify(power.switches));
+    socket.broadcast.emit('emit-power-switches', power.switches);
+  });
   socket.on('setBrightness', function(data) {
     var brightness = parseInt(data);
     lighting["brightness"] = brightness;
@@ -335,6 +418,72 @@ app.get('/api', function (req, res) {
     ]);
 });
 
+/*
+ * Power API
+ */
+app.get('/api/power/switches', function (req, res) {
+  var out = []
+  power.switches.forEach(function(s, idx) {
+    if (power.switches[idx] && power.switches[idx].id) {
+      out.push(power.switches[idx]);
+    }
+  });
+  res.send(out);
+});
+app.post('/api/power/switches', function (req, res) {
+  var ps = {
+    address: req.body.address,
+    description: req.body.description || ''
+  };
+  power.switches[ps.address] = {
+    id: ps.address,
+    description: ps.description,
+    state: 'off'
+  }
+  res.send(201, ps);
+  io.sockets.emit('emit-power-switches', power.switches);
+  fs.writeFile(powerDB, JSON.stringify(power.switches));
+});
+app.get('/api/power/switch/:id', function (req, res) {
+  if (power.switches[req.params.id]) {
+    res.json(power.switches[req.params.id]);
+  } else {
+    var errmsg = {"code": "ResourceNotFound", "message": "socket does not exist"}
+    res.send(404, errmsg)
+  }
+})
+app.put('/api/power/switch/:id', function (req, res) {
+  var ps = {
+    id: req.params.id,
+    description: req.body.description,
+    state: req.body.state
+  };
+  if (ps.id) {
+    power.switches[ps.id].id = ps.id;
+  }
+  if (ps.description) {
+    power.switches[ps.id].description = ps.description
+  }
+  if (ps.state) {
+    power.switches[ps.id].state = ps.state;
+    setPowerSwitch(power.switches[ps.id]);
+  }
+  res.send(204);
+  fs.writeFile(powerDB, JSON.stringify(power));
+  io.sockets.emit('emit-power-switches', power.switches);
+})
+app.del('/api/power/switch/:id', function (req, res) {
+  if (power.switches[req.params.id]) {
+    delete power.switches[req.params.id]
+  }
+  res.send(204);
+  io.sockets.emit('emit-power-switches', power.switches)
+  fs.writeFile(powerDB, JSON.stringify(power.switches));
+})
+
+/*
+ * Lighting API
+ */
 app.get('/api/lighting/output', function (req, res) {
   res.send(lighting["output"]);
 })

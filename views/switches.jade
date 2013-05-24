@@ -1,0 +1,48 @@
+extends layout
+
+block content
+  div.container
+    div.row
+      div.span10
+        p.ui-state-default.ui-corner-all.ui-helper-clearfix(style='padding:8px; text-align: center;') Power Switch Configuration
+      div.span2
+        a.btn.btn-success(href="#modal-add-power-switch", data-toggle="modal") Add New Switch
+    div.row
+      div.span12
+        div#list-power-switches
+    div.row
+      div.hide.modal#modal-add-power-switch
+        form#form-add-power-switch
+          div.modal-header
+            button.close(data-dismiss="modal") x
+            h3 Create New Power Switch
+          div.modal-body
+            input(type="text", id="address", name="address", placeholder="Switch Address")
+            input(type="text", id="description", name="description", placeholder="Switch Description")
+          div.modal-footer
+            button.btn.btn-close(data-dismiss="modal") Cancel
+            button.btn.btn-primary(type="submit") Create
+    div.row
+      div.hide.modal#modal-edit-power-switch
+        form#form-edit-power-switch
+          div.modal-header
+            button.close(data-dismiss="modal") x
+            h3 Edit Power Switch
+          div.modal-body
+            input(type="text", id="edit-power-switch-description", name="description", placeholder="Switch Description")
+            input(type="hidden", id="edit-power-switch-id", name="edit-power-switch-id", value="")
+          div.modal-footer
+            button.btn.btn-close(data-dismiss="modal") Cancel
+            button.btn.btn-primary(type="submit") Update
+    div.row
+      div.hide.modal#modal-delete-power-switch
+        form#form-delete-power-switch
+          div.modal-header
+            button.close(data-dismiss="modal") x
+            h3 Delete Switch
+          div.modal-body
+            input(type="hidden", id="delete-power-switch-id", name="delete-power-switch-id", value="")
+            p Are you sure?
+          div.modal-footer
+            button.btn.btn-close(data-dismiss="modal") Cancel
+            button.btn.btn-primary(type="submit") Delete
