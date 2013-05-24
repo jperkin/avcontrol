@@ -3,6 +3,7 @@
 This is a node-based Audio/Visual control system.  It currently supports:
 
  - Art-Net based DMX Lighting
+ - OpenZWave binary power switches via USB (Aeon ZStick)
 
 The aim is to provide a user interface for people to control lighting and AV
 from a portable device.  In the future, support will be added for:
