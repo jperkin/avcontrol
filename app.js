@@ -209,7 +209,17 @@ setInterval(function() {
   if (updateLighting) {
     updateLighting = 0;
     for (var i = 0; i < sendOutput.length; i++) {
-      sendOutput[i] = parseInt(lighting["output"][i] * lighting["brightness"] / 100)
+      /*
+       * The brightness value for PAR8 lights should always be set full,
+       * and we control them with the RGB values.  Yes, this is a hack.
+       *
+       * Otherwise we calculate the output as RGB * overall brightness.
+       */
+      if (lighting.lights[i] && lighting.lights[i].type === 'par8') {
+        sendOutput[i] = parseInt(lighting["output"][i])
+      } else {
+        sendOutput[i] = parseInt(lighting["output"][i] * lighting["brightness"] / 100)
+      }
     }
     artnet.send(sendOutput);
   }
