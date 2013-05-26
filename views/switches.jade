@@ -19,6 +19,9 @@ block content
           div.modal-body
             input(type="text", id="address", name="address", placeholder="Switch Address")
             input(type="text", id="description", name="description", placeholder="Switch Description")
+            select(id="type", name="type")
+              option(value="binary") Binary (On/Off)
+              option(value="multi") Multi-level
           div.modal-footer
             button.btn.btn-close(data-dismiss="modal") Cancel
             button.btn.btn-primary(type="submit") Create

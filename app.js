@@ -230,6 +230,7 @@ updateLights = function() {
 
 var powerDB = "power.json";
 var power = {};
+var cbid = 1;
 fs.exists(powerDB, function (exists) {
   if (exists) {
     fs.readFile(powerDB, function (err, data) {
@@ -245,49 +246,21 @@ fs.exists(powerDB, function (exists) {
 })
 
 /*
- * Set a power switch on/off via Z-Wave
+ * Send an array to ZWave device.
  */
-var setPowerSwitch = function (powsock)
+var sendZWave = function(data)
 {
-  var psid = parseInt(powsock.id);
-
-  /*
-   * Z-Wave protocol packet
-   */
-  var packet = [
-    0x06, // command terminator?  appear to require two
-    0x06,
-    0x01,
-    0x0a,
-    0x00,
-    0x13,
-    psid, // node id
-    0x03,
-    0x25, // COMMAND_CLASS_SWITCH_BINARY
-    0x01,
-    powsock.state === 'on' ? 0xff : 0x00,
-    0x25, // transmit options (ACK | AUTO_ROUTE | EXPLORE)
-    0x10, // packet length
-  ]
-
-  /*
-   * Calculate and append packet checksum
-   */
-  var csum = 0xff;
-  for (var i = 3; i < packet.length; i++) {
-    csum ^= packet[i];
+  if (typeof(data) === 'number') {
+    data = [data];
   }
-  packet.push(csum);
+  var zwave = new Buffer(data.length);
 
-  /*
-   * Create buffer and send
-   */
-  var zwave = new Buffer(packet.length);
-  packet.forEach(function (val, idx) {
+  data.forEach(function (val, idx) {
     var hexval = parseInt(val).toString(16);
     zwave.write(hexval.length > 1 ? hexval : '0' + hexval, idx, 'hex');
   });
 
+  console.log(zwave);
   fs.open('/dev/ttyUSB0', 'a', function (err, fd) {
     if (err) {
       return console.log(err);
@@ -298,6 +271,80 @@ var setPowerSwitch = function (powsock)
       }
     })
   })
+}
+
+/*
+ * Set a power switch on/off via Z-Wave
+ */
+var setPowerSwitch = function (powsock)
+{
+  var psid = parseInt(powsock.id);
+  var packet, i;
+
+  /*
+   * Send some ACKs
+   */
+  for (i = 0; i < 3; i++) {
+    sendZWave(0x06);
+  }
+
+  /*
+   * Z-Wave protocol packet
+   */
+  packet = [
+    0x00, // REQUEST
+    0x13, // FUNC_ID_ZW_SEND_DATA
+    psid, // node id
+  ]
+  switch (powsock.type) {
+  case 'binary':
+    packet.push(
+      0x03, // length of this command data
+      0x25, // COMMAND_CLASS_SWITCH_BINARY
+      0x01, // SwitchBinaryCmd_Set
+      powsock.state === 'on' ? 0xff : 0x00
+    );
+    break;
+  case 'multi':
+    packet.push(
+      0x04, // length of this command data
+      0x26, // COMMAND_CLASS_SWITCH_MULTILEVEL
+      0x04, // SwitchMultilevelCmd_StartLevelChange
+      powsock.state === 'up' ? 0x18 : 0x58,
+      0x00  // startlevel, ignored for simple up/down
+    );
+    break;
+  }
+  packet.push(
+    0x25, // transmit options (ACK | AUTO_ROUTE | EXPLORE)
+    cbid  // callback id
+  )
+  /*
+   * Prepend the packet length, plus one for the checksum.
+   */
+  packet.unshift(packet.length + 1);
+
+  /*
+   * Calculate and append checksum
+   */
+  var csum = 0xff;
+  for (i = 0; i < packet.length; i++) {
+    csum ^= packet[i];
+  }
+  packet.push(csum);
+
+  packet.unshift(0x01); // Start Of Frame (SOF)
+
+  sendZWave(packet);
+  sendZWave(0x06);
+
+  /*
+   * Increment callback id for next packet.
+   */
+  cbid += 1;
+  if (cbid > 255) {
+    cbid = 1;
+  }
 }
 
 /*
@@ -443,12 +490,13 @@ app.get('/api/power/switches', function (req, res) {
 app.post('/api/power/switches', function (req, res) {
   var ps = {
     address: req.body.address,
-    description: req.body.description || ''
+    description: req.body.description || '',
+    type: req.body.type
   };
   power.switches[ps.address] = {
     id: ps.address,
     description: ps.description,
-    state: 'off'
+    type: ps.type,
   }
   res.send(201, ps);
   io.sockets.emit('emit-power-switches', power.switches);
@@ -476,6 +524,10 @@ app.put('/api/power/switch/:id', function (req, res) {
   }
   if (ps.state) {
     power.switches[ps.id].state = ps.state;
+    setPowerSwitch(power.switches[ps.id]);
+  }
+  if (ps.type) {
+    power.switches[ps.id].type = ps.type;
     setPowerSwitch(power.switches[ps.id]);
   }
   res.send(204);

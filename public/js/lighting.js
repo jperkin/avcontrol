@@ -61,6 +61,15 @@ $(document).ready(function() {
           )
         )
       )
+      var labels;
+      switch (pswitch.type) {
+      case 'binary':
+        labels = [['on', 'On'], ['off', 'Off']];
+        break;
+      case 'multi':
+        labels = [['up', 'Up'], ['down', 'Down']];
+        break;
+      }
       pswitch_buttons.push($('<tr>')
         .append($('<td>', {'stype': 'text-align: center'}).text(index))
         .append($('<td>').text(pswitch.description))
@@ -69,9 +78,9 @@ $(document).ready(function() {
             'class': 'btn btn-success btn-block set-power-switch',
             'data-target': '.set-power-switch',
             'data-id': index,
-            'data-action': 'on'
+            'data-action': labels[0][0]
           })
-          .text('On')
+          .text(labels[0][1])
           )
         )
         .append($('<td>')
@@ -79,9 +88,9 @@ $(document).ready(function() {
             'class': 'btn btn-danger btn-block set-power-switch',
             'data-target': '.set-power-switch',
             'data-id': index,
-            'data-action': 'off'
+            'data-action': labels[1][0]
           })
-          .text('Off')
+          .text(labels[1][1])
           )
         )
       );
