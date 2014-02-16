@@ -11,6 +11,7 @@ var navLinks = {
     { label: 'Presets', key: 'presets', path: '/presets' },
     { label: 'Zones', key: 'zones', path: '/zones' },
     { label: 'Lights', key: 'lights', path: '/lights' },
+    { label: 'ZWave', key: 'zwave', path: '/zwave' },
     { label: 'Switches', key: 'switches', path: '/switches' }
   ],
 }
@@ -24,12 +25,14 @@ var express = require('express')
   , LocalStrategy = require('passport-local').Strategy
   , artnet = require('artnet-node').Client.createClient(config.artnethost, 6454)
   , async = require('async')
+  , OpenZWave = require('openzwave')
   , fs = require('fs')
   , path = require('path');
 
 var app = express();
 var server = http.createServer(app)
   , io = require('socket.io').listen(server)
+  , zwave = new OpenZWave(config.zwdev);
 
 io.set('log level', 1)
 
@@ -122,6 +125,7 @@ app.get('/presets', ensureAuthenticated, routes.presets);
 app.get('/zones', ensureAuthenticated, routes.zones);
 app.get('/lights', ensureAuthenticated, routes.lights);
 app.get('/switches', ensureAuthenticated, routes.switches);
+app.get('/zwave', ensureAuthenticated, routes.zwave);
 app.get('/login', routes.login);
 
 app.post('/login',
@@ -139,6 +143,80 @@ function ensureAuthenticated(req, res, next) {
     if (req.isAuthenticated()) { return next(); }
       res.redirect('/login')
 }
+
+zwavedata = [];
+
+zwave.on('node added', function(nodeid) {
+  zwavedata[nodeid] = {
+    manufacturer: '',
+    manufacturerid: '',
+    product: '',
+    producttype: '',
+    productid: '',
+    type: '',
+    name: '',
+    loc: '',
+    classes: {},
+    ready: false,
+  };
+});
+
+zwave.on('value added', function(nodeid, comclass, value) {
+  console.log('value added');
+  if (!zwavedata[nodeid]['classes'][comclass])
+    zwavedata[nodeid]['classes'][comclass] = {};
+    zwavedata[nodeid]['classes'][comclass][value.index] = value;
+    io.sockets.emit('zwave update', zwavedata);
+});
+
+zwave.on('value changed', function(nodeid, comclass, value) {
+  console.log('value changed');
+  zwavedata[nodeid]['classes'][comclass][value.index] = value;
+  io.sockets.emit('zwave update', zwavedata);
+});
+
+zwave.on('value removed', function(nodeid, comclass, index) {
+  console.log('value removed');
+  if (zwavedata[nodeid]['classes'][comclass] &&
+      zwavedata[nodeid]['classes'][comclass][index])
+    delete zwavedata[nodeid]['classes'][comclass][index];
+    io.sockets.emit('zwave update', zwavedata);
+});
+
+zwave.on('node ready', function(nodeid, nodeinfo) {
+  console.log('node ready');
+  zwavedata[nodeid]['manufacturer'] = nodeinfo.manufacturer;
+  zwavedata[nodeid]['manufacturerid'] = nodeinfo.manufacturerid;
+  zwavedata[nodeid]['product'] = nodeinfo.product;
+  zwavedata[nodeid]['producttype'] = nodeinfo.producttype;
+  zwavedata[nodeid]['productid'] = nodeinfo.productid;
+  zwavedata[nodeid]['type'] = nodeinfo.type;
+  zwavedata[nodeid]['name'] = nodeinfo.name;
+  zwavedata[nodeid]['loc'] = nodeinfo.loc;
+  zwavedata[nodeid]['ready'] = true;
+  for (comclass in zwavedata[nodeid]['classes']) {
+    switch (comclass) {
+    case '37': // COMMAND_CLASS_SWITCH_BINARY
+    case '38': // COMMAND_CLASS_SWITCH_MULTILEVEL
+      console.log('enable polling on %d:%d', nodeid, comclass);
+      zwave.enablePoll(nodeid, comclass);
+      break;
+    }
+  }
+  io.sockets.emit('zwave update', zwavedata);
+});
+
+zwave.on('driver ready', function(homeid) {
+  console.log('scanning homeid=0x%s...', homeid.toString(16));
+});
+
+process.on('SIGINT', function() {
+  console.log('disconnecting...');
+  zwave.disconnect();
+  process.exit();
+});
+
+zwave.connect();
 
 server.listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
@@ -247,34 +325,6 @@ fs.exists(powerDB, function (exists) {
 })
 
 /*
- * Send an array to ZWave device.
- */
-var sendZWave = function(data)
-{
-  if (typeof(data) === 'number') {
-    data = [data];
-  }
-  var zwave = new Buffer(data.length);
-
-  data.forEach(function (val, idx) {
-    var hexval = parseInt(val).toString(16);
-    zwave.write(hexval.length > 1 ? hexval : '0' + hexval, idx, 'hex');
-  });
-
-  console.log(zwave);
-  fs.open('/dev/ttyUSB0', 'a', function (err, fd) {
-    if (err) {
-      return console.log(err);
-    }
-    fs.write(fd, zwave, 0, zwave.length, -1, function(err) {
-      if (err) {
-        return console.log(err);
-      }
-    })
-  })
-}
-
-/*
  * Set a power switch on/off via Z-Wave
  */
 var setPowerSwitch = function (powsock)
@@ -282,69 +332,35 @@ var setPowerSwitch = function (powsock)
   var psid = parseInt(powsock.id);
   var packet, i;
 
-  /*
-   * Send some ACKs
-   */
-  for (i = 0; i < 3; i++) {
-    sendZWave(0x06);
-  }
-
-  /*
-   * Z-Wave protocol packet
-   */
-  packet = [
-    0x00, // REQUEST
-    0x13, // FUNC_ID_ZW_SEND_DATA
-    psid, // node id
-  ]
   switch (powsock.type) {
   case 'binary':
-    packet.push(
-      0x03, // length of this command data
-      0x25, // COMMAND_CLASS_SWITCH_BINARY
-      0x01, // SwitchBinaryCmd_Set
-      powsock.state === 'on' ? 0xff : 0x00
-    );
+    switch (powsock.state) {
+    case 'on':
+      console.log("switch %d on", psid);
+      zwave.switchOn(psid);
+      break;
+    case 'off':
+      zwave.switchOff(psid);
+      console.log("switch %d off", psid);
+      break;
+    }
     break;
   case 'multi':
-    packet.push(
-      0x04, // length of this command data
-      0x26, // COMMAND_CLASS_SWITCH_MULTILEVEL
-      0x04, // SwitchMultilevelCmd_StartLevelChange
-      powsock.state === 'up' ? 0x18 : 0x58,
-      0x00  // startlevel, ignored for simple up/down
-    );
+    switch (powsock.state) {
+    case 'up':
+      powsock.level += 10;
+      break;
+    default:
+      powsock.level -= 10;
+      break;
+    }
+    if (powsock.level > 99)
+      powsock.level = 99;
+    if (powsock.level < 0)
+      powsock.level = 0;
+    console.log("set %d to %d", psid, powsock.level);
+    zwave.setLevel(psid, powsock.level);
     break;
-  }
-  packet.push(
-    0x25, // transmit options (ACK | AUTO_ROUTE | EXPLORE)
-    cbid  // callback id
-  )
-  /*
-   * Prepend the packet length, plus one for the checksum.
-   */
-  packet.unshift(packet.length + 1);
-
-  /*
-   * Calculate and append checksum
-   */
-  var csum = 0xff;
-  for (i = 0; i < packet.length; i++) {
-    csum ^= packet[i];
-  }
-  packet.push(csum);
-
-  packet.unshift(0x01); // Start Of Frame (SOF)
-
-  sendZWave(packet);
-  sendZWave(0x06);
-
-  /*
-   * Increment callback id for next packet.
-   */
-  cbid += 1;
-  if (cbid > 255) {
-    cbid = 1;
   }
 }
 
@@ -362,6 +378,7 @@ io.sockets.on('connection', function (socket) {
   socket.emit('emitZones', lighting)
   socket.emit('emitLights', lighting)
   socket.emit('emit-power-switches', power.switches)
+  socket.emit('zwave update', zwavedata);
 
   /*
    * ..then update on events
@@ -369,7 +386,7 @@ io.sockets.on('connection', function (socket) {
   socket.on('setPowerSwitch', function(data) {
     power.switches[data.socket].state = data.state;
     updateSocket(sockets[data.socket]);
-    fs.writeFile(powerDB, JSON.stringify(power.switches));
+    fs.writeFile(powerDB, JSON.stringify(power));
     socket.broadcast.emit('emit-power-switches', power.switches);
   });
   socket.on('setBrightness', function(data) {
@@ -501,7 +518,7 @@ app.post('/api/power/switches', function (req, res) {
   }
   res.send(201, ps);
   io.sockets.emit('emit-power-switches', power.switches);
-  fs.writeFile(powerDB, JSON.stringify(power.switches));
+  fs.writeFile(powerDB, JSON.stringify(power));
 });
 app.get('/api/power/switch/:id', function (req, res) {
   if (power.switches[req.params.id]) {
@@ -541,7 +558,7 @@ app.del('/api/power/switch/:id', function (req, res) {
   }
   res.send(204);
   io.sockets.emit('emit-power-switches', power.switches)
-  fs.writeFile(powerDB, JSON.stringify(power.switches));
+  fs.writeFile(powerDB, JSON.stringify(power));
 })
 
 /*

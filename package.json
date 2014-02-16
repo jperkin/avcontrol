@@ -1,6 +1,6 @@
 {
   "name": "avcontrol",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "scripts": {
     "start": "node app.js"
@@ -12,6 +12,7 @@
     "express": "3.x",
     "jade": "*",
     "less-middleware": "*",
+    "openzwave": "*",
     "passport": "*",
     "passport-http": "*",
     "passport-local": "*",

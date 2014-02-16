@@ -27,6 +27,58 @@ $(document).ready(function() {
     $('#preset-button-' + lighting.preset).removeClass('btn-preset-inactive').addClass('btn-preset-active').button('refresh');
   });
 
+  /*
+   * Z-Wave updates
+   */
+  socket.on('zwave update', function(data) {
+    var zdevices = [];
+    $('#list-zwave-devices').empty();
+    $.each(data, function(index, node) {
+      if (node) {
+        var nstat = "";
+        for (comclass in node['classes']) {
+          switch (comclass) {
+          case '37':
+            if (node['classes'][comclass][0]['value'])
+              nstat = "Switch = On"
+            else
+              nstat = "Switch = Off"
+            break;
+          case '38':
+            nstat = "Level = " + node['classes'][comclass][0]['value'];
+            break;
+          }
+        }
+        zdevices.push($('<tr>')
+          .append($('<td>', {style: 'text-align: center'}).text(index))
+          .append($('<td>', {style: 'text-align: center'}).text(node['manufacturer']))
+          .append($('<td>', {style: 'text-align: center'}).text(node['product']))
+          .append($('<td>', {style: 'text-align: center'}).text(node['type']))
+          .append($('<td>', {style: 'text-align: center'}).text(node['name']))
+          .append($('<td>', {style: 'text-align: center'}).text(node['loc']))
+          .append($('<td>', {style: 'text-align: center'}).text(nstat))
+        );
+      }
+    });
+    $('#list-zwave-devices')
+      .append($('<table>', {"class": "table table-striped table-bordered"})
+        .append($('<thead>')
+          .append($('<tr>')
+            .append($('<th>').text('Node ID'))
+            .append($('<th>').text('Manufacturer'))
+            .append($('<th>').text('Product'))
+            .append($('<th>').text('Type'))
+            .append($('<th>').text('Name'))
+            .append($('<th>').text('Location'))
+            .append($('<th>').text('Status'))
+          )
+        )
+        .append($('<tbody>')
+          .append(zdevices)
+        )
+      );
+  });
+
   socket.on('emit-power-switches', function(data) {
     power.switches = data;
 

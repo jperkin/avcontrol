@@ -27,6 +27,10 @@ exports.zones = function(req, res){
   res.render('zones', { user: req.user, title: 'Zones', section: 'zones'});
 };
 
+exports.zwave = function(req, res){
+  res.render('zwave', { user: req.user, title: 'ZWave', section: 'zwave'});
+};
+
 exports.lights = function(req, res){
   res.render('lights', { user: req.user, title: 'Lights', section: 'lights'});
 };
