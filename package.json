@@ -9,7 +9,7 @@
     "artnet-node": "*",
     "async": "*",
     "connect-flash": "*",
-    "express": "3.2.0",
+    "express": "3.x",
     "jade": "*",
     "less-middleware": "*",
     "passport": "*",
